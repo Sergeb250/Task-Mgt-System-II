@@ -14,14 +14,17 @@ public class RegexValidator {
     }
 
     public static boolean isProjectId(String text) {
+
         return text != null && PROJECT_ID.matcher(text).matches();
     }
 
     public static boolean isTaskId(String text) {
+
         return text != null && TASK_ID.matcher(text).matches();
     }
 
     public static boolean isEmail(String text) {
+
         return text != null && EMAIL.matcher(text).matches();
     }
 }

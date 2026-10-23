@@ -15,7 +15,7 @@ All functionality from Lab 1 (Project creation, Task management, Completion aver
 - Basic JUnit tests for core functions
 - Git repository setup and proper commit workflow
 
-All data remains in memory using **arrays** (no external DB). Future labs will introduce **collections** and **file persistence**.
+Projects are stored in a `HashMap` and each project keeps tasks in an `ArrayList`. The catalog is saved to `data/projects_data.json`.
 
 ## Project Objectives
 
@@ -83,7 +83,8 @@ Main Menu:
 2. Manage Tasks
 3. View Status Reports
 4. Switch User
-5. Exit
+5. Simulate Concurrent Updates
+6. Exit
 
 Enter your choice: _
 ```
@@ -295,12 +296,16 @@ project-management-system/
 │   │   └── StatusReport.java
 │   │
 │   ├── interfaces/
-│   │   └── Completable.java
+│   │   ├── Completable.java
+│   │   └── TaskFilter.java
 │   │
 │   ├── services/
 │   │   ├── ProjectService.java
 │   │   ├── TaskService.java
-│   │   └── ReportService.java
+│   │   ├── ReportService.java
+│   │   ├── UserService.java
+│   │   ├── StreamService.java
+│   │   └── ConcurrencyService.java
 │   │
 │   ├── utils/
 │   │   ├── ConsoleMenu.java
@@ -308,7 +313,11 @@ project-management-system/
 │   │   ├── TaskMenu.java
 │   │   ├── UserMenu.java
 │   │   ├── ReportMenu.java
+│   │   ├── MenuScreen.java
 │   │   ├── ValidationUtils.java
+│   │   ├── RegexValidator.java
+│   │   ├── FileUtils.java
+│   │   ├── SampleDataLoader.java
 │   │   └── exceptions/
 │   │       ├── InvalidInputException.java
 │   │       ├── ProjectNotFoundException.java
@@ -316,7 +325,10 @@ project-management-system/
 │   │       └── EmptyProjectException.java
 │
 ├── test/
-│   └── ProjectTests.java
+│   ├── ProjectTests.java
+│   ├── StreamOperationsTest.java
+│   ├── FilePersistenceTest.java
+│   └── ConcurrencyTest.java
 │
 ├── docs/
 │   ├── class-diagram.png
@@ -488,7 +500,7 @@ Enter task ID: TSK999
 
 - Listing goes through `ProjectService` (`printAll`, `printByType`, `printByBudget`).
 - Details use getters / polymorphism (`getType()`, `getProjectDetails()`), not raw fields.
-- Each project keeps its own task array; opening a project shows only that project’s tasks (no duplicate rows from another project).
+- Each project keeps its own task list; opening a project shows only that project’s tasks (no duplicate rows from another project).
 
 **Example**
 
@@ -572,6 +584,8 @@ Please try again.
 
 **Result — Done**
 
+`mvn test` runs 14 tests across four classes.
+
 | Test | What it proves |
 | --- | --- |
 | `createProject` | Real `SoftwareProject` stored in real `ProjectService`; name/type/count asserted |
@@ -580,13 +594,21 @@ Please try again.
 | `missingTaskThrows` | Mocked `ProjectService.getCount() == 0` → `TaskNotFoundException` |
 | `adminCanDeleteProject` | `AdminUser.canUpdateAndDelete()` is `true` |
 | `regularUserCannotDeleteProject` | `RegularUser.canUpdateAndDelete()` is `false` |
+| `testFilterCompletedTasksUsingStreams` | Filter keeps the completed task, map keeps both names, reduce totals `50.0` |
+| `regexAcceptsProjectAndTaskIds` | `PRJ001` and `TSK004` match; `TX01` and `T001` do not |
+| `badTaskIdThrows` | A bad task id throws `InvalidInputException` |
+| `saveAndLoadKeepsProjectAndTask` | A software project and its task survive save and load |
+| `missingFileReturnsFalse` | A missing file returns false and adds no projects |
+| `malformedFileReturnsFalse` | Broken file text returns false and adds no projects |
+| `threeThreadsUpdateThreeTasks` | Three tasks end as In Progress, Completed, Completed |
+| `fewerThanThreeTasksUpdatesOnlyExistingOnes` | One task becomes In Progress and the list stays size 1 |
 
 **Example**
 
 ```text
 $ mvn test
 ...
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -635,7 +657,7 @@ Refactor each class to one job so the menu only reads input.
 **Result — Done**
 
 - Remote: [https://github.com/Sergeb250/Task-Mgt-System-II.git](https://github.com/Sergeb250/Task-Mgt-System-II.git)
-- Branches on remote: `main`, `feature/refactor`, `feature/exceptions`, `feature/testing`, `feature/taskvalidation`
+- Branches on remote: `main`, `feature/refactor`, `feature/exceptions`, `feature/testing`, `feature/taskvalidation`, `feature/collections-fp`, `feature/file-io`, `feature/concurrency`
 - Clone path for a teammate:
 
 ```bash
@@ -670,11 +692,11 @@ On startup the app reads `data/projects_data.json`. On exit it writes that file 
 
 Main menu option **5** runs three threads that update tasks. `TaskService.updateStatus` is `synchronized`.
 
-Run the app from the project folder so `data/projects_data.json` is found. Tests:
+Run the app from the project folder so `data/projects_data.json` is found. `mvn test` runs 14 tests:
 
-```text
-test/ProjectTests.java
-test/StreamOperationsTest.java
-test/FilePersistenceTest.java
-test/ConcurrencyTest.java
-```
+| Class | What it covers |
+| --- | --- |
+| `test/ProjectTests.java` | Create, add task, 50 percent completion, missing task, admin and regular user |
+| `test/StreamOperationsTest.java` | Filter, map, reduce, and id patterns |
+| `test/FilePersistenceTest.java` | Save and load, a missing file, and a malformed file |
+| `test/ConcurrencyTest.java` | Three tasks updated together, and one task when the other threads have nothing to update |

@@ -184,10 +184,7 @@ class ProjectMenu extends MenuScreen {
     }
 
     private void addProject() {
-        if (projectService.isFull()) {
-            System.out.println("The project list is full.");
-            return;
-        }
+
 
         System.out.println("1. Software Project");
         System.out.println("2. Hardware Project");

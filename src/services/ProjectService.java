@@ -18,10 +18,7 @@ public class ProjectService {
         projects = new HashMap<>();
     }
 
-    // A HashMap grows as needed, so the catalog is never full.
-    public boolean isFull() {
-        return false;
-    }
+
 
     public void addProject(Project project) {
         projects.put(project.getId(), project);
@@ -96,7 +93,11 @@ public class ProjectService {
     }
 
     private Comparator<Project> byName() {
-        return (first, second) -> first.getName().compareToIgnoreCase(second.getName());
+        return (
+                first,
+                second) ->
+                first.getName()
+                        .compareToIgnoreCase(second.getName());
     }
 
     private void printTable(List<Project> matches) {

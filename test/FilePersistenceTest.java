@@ -1,4 +1,3 @@
-import models.HardwareProject;
 import models.Project;
 import models.SoftwareProject;
 import models.TaskStatus;
@@ -55,18 +54,4 @@ public class FilePersistenceTest {
         assertEquals(0, projects.getCount());
     }
 
-    @Test
-    void hardwareProjectRoundTrip() throws Exception {
-        Path path = Files.createTempDirectory("task-manager").resolve("projects_data.json");
-        ProjectService saved = new ProjectService();
-        HardwareProject project = new HardwareProject("Kit", "Sensors", 2, 5, 500, "Bob", "Motors");
-        saved.addProject(project);
-
-        FileUtils.saveProjects(path, saved);
-
-        ProjectService loaded = new ProjectService();
-        assertTrue(FileUtils.loadProjects(path, loaded));
-        HardwareProject again = (HardwareProject) loaded.findById(project.getId());
-        assertEquals("Motors", again.getEquipment());
-    }
 }

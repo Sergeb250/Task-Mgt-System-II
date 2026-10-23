@@ -44,8 +44,6 @@ public class ConcurrencyService {
             System.out.println("Update was interrupted.");
         }
 
-        System.out.println("Parallel stream check:");
-        tasks.parallelStream().map(Task::getName).forEach(name -> System.out.println("  " + name));
 
         System.out.println("All threads finished successfully.");
         System.out.println("✓ Task updates applied concurrently and safely.");
