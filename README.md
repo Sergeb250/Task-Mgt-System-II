@@ -2,67 +2,75 @@
 
 ## Project Overview
 
-**Technology Stack:** Java 21 (LTS), IntelliJ IDEA Community Edition, JUnit 5
+**Lab 3 – Java Advanced**
 
-This lab builds **Lab 1 – Java Basics** by refactoring the **Project/Task Management System** for **cleaner, safer, and testable code**.
+**Technology Stack:** Java 21 (LTS), IntelliJ IDEA Community Edition, Maven, JUnit 5, Mockito
 
-You'll apply **exception handling**, **SOLID principles**, and **unit testing** using JUnit 5, while maintaining version control with Git.
+This lab keeps the Project/Task Management System from Lab 1 and Lab 2 and adds collections, functional code, file persistence, regular expressions, and concurrency.
 
-All functionality from Lab 1 (Project creation, Task management, Completion averages) remains, but now enhanced with:
+Lab 2 still stands: custom exceptions, one job per class, and JUnit tests. Lab 3 replaces the fixed arrays with collections and makes the catalog survive a restart.
 
-- Custom exceptions for invalid inputs
-- Refactored, modular code with better naming and organization
-- Basic JUnit tests for core functions
-- Git repository setup and proper commit workflow
+What this version does:
 
-Projects are stored in a `HashMap` and each project keeps tasks in an `ArrayList`. The catalog is saved to `data/projects_data.json`.
+- Stores projects in a `HashMap` and each project's tasks in an `ArrayList`
+- Filters, maps, and reduces with streams, lambdas, and method references
+- Uses `TaskFilter`, a functional interface, to count tasks by status
+- Checks `PRJ###`, `TSK###`, and email text with `Pattern` and `Matcher`
+- Loads `data/projects_data.json` on startup and saves it on exit with NIO and try-with-resources
+- Runs three threads from main menu option 5; `TaskService.updateStatus` is `synchronized`
+- Covers those paths with 14 JUnit tests
 
 ## Project Objectives
 
 By completing this lab, you will be able to:
 
-- Apply **clean code principles** (SOLID, naming conventions, method modularity).
-- Implement **exception handling** using try-catch blocks and custom exceptions.
-- Refactor Lab 1 code for improved readability and maintainability.
-- Write and run **JUnit unit tests** for methods like task status updates and completion calculations.
-- Use **Git** for source control: initialize repositories, commit changes, create branches, and merge.
-- Evaluate code quality through consistent indentation, comments, and naming.
-- Handle invalid user inputs gracefully through custom exception messages.
-- Prepare the system for future enhancements (Week 3 will replace arrays with collections).
+- Replace fixed arrays with `ArrayList` and `HashMap`.
+- Use streams (`filter`, `map`, `reduce`), lambdas, and method references.
+- Pass behavior with a functional interface (`TaskFilter`).
+- Validate ids and emails with regular expressions.
+- Save and load the catalog with `java.nio.file` and try-with-resources.
+- Update different tasks from three threads and protect the write with `synchronized`.
+- Prove each of those behaviors with JUnit 5, including a missing file, a broken file, and a run with fewer than three tasks.
+- Keep the history on three feature branches merged into `main`.
 
 ## System Features Overview
 
-Your **Project/Task Management System** should now include error handling, refactoring, and testing enhancements for these five core features:
+### Feature 1: Collections and functional code
 
-### Feature 1: Project Catalog Management
+- `ProjectService` stores projects in `Map<String, Project>`. Lookup by id does not use a fixed slot count.
+- `Project` stores tasks in `List<Task>`. Adding a task is `tasks.add(task)`. There is no 20-task cap.
+- `StreamService` filters completed tasks, maps tasks to names, and reduces completion percentages.
+- `TaskService.countByStatus` builds a `TaskFilter` lambda and passes `filter::test` to a stream.
+- `Project.getCompletionRate()` counts completed tasks with a stream. One completed task out of two is 50.
 
-- Same as Lab 1 (creating and listing projects).
-- Add validation via custom exceptions (e.g., InvalidProjectDataException).
-- Enforce unique project IDs and positive budgets.
+### Feature 2: File persistence
 
-### Feature 2: Task Operations
+- `Main` calls `FileUtils.loadProjects` before the menu and `FileUtils.saveProjects` in a `finally` block on the way out.
+- Save sorts projects by id and writes JSON-like text. Software technology and hardware equipment both go in `"extra"`.
+- The writer and the line stream are opened with try-with-resources, so the file is closed when the block ends.
+- A missing file prints `File not found` and the app starts with an empty catalog. A broken file prints `malformed data` and does not keep a half-loaded list.
 
-- Handle invalid task assignments gracefully (throw TaskNotFoundException).
-- Refactor task creation/update methods for clarity.
-- Add unit tests for task status updates and progress calculation.
+### Feature 3: Regex validation
 
-### Feature 3: User Management
+- `RegexValidator` compiles `PRJ\\d{3}`, `TSK\\d{3}`, and an email pattern once.
+- `PRJ001` and `TSK004` match. `TX01` and `T001` do not.
+- `ValidationUtils` also accepts a short number such as `1` and turns it into `PRJ001`. After that, the pattern must still match, or the menu asks again.
 
-- Refactor user logic to separate responsibilities (e.g., UserService).
-- Validate email and role inputs through exceptions.
-- Use Git branches for adding new user roles (clean commit history).
+### Feature 4: Concurrency
 
-### Feature 4: Status Processing & Reporting
+- Main menu option **5. Simulate Concurrent Updates** calls `ConcurrencyService.simulate`.
+- Projects are sorted by id, then their tasks are placed in one list.
+- Thread-1 sets task 0 to In Progress. Thread-2 sets task 1 to Completed. Thread-3 sets task 2 to Completed.
+- `join()` waits until all three threads finish. If a thread's index is past the end of the list, it prints that it has no task and returns.
+- `updateStatus`, `addTask`, and `removeTaskById` are `synchronized`, so only one thread at a time is inside those writes.
 
-- Add validation for projects with no tasks (throw EmptyProjectException).
-- Test average calculation methods via JUnit.
-- Refactor printing logic to utility methods.
+### Feature 5: Tests and Git
 
-### Feature 5: Menu Navigation & User Experience
-
-- Improve input validation with exception handling.
-- Display user-friendly error messages for invalid entries.
-- Ensure menu loops remain stable under exceptions.
+- `test/ProjectTests.java` — create, add task, 50 percent, missing task, admin and regular user
+- `test/StreamOperationsTest.java` — filter, map, reduce, and id patterns
+- `test/FilePersistenceTest.java` — save and load, a missing file, and a malformed file
+- `test/ConcurrencyTest.java` — three tasks updated together, and one task when the other threads have nothing to update
+- Lab 3 history is `feature/collections-fp`, `feature/file-io`, and `feature/concurrency`, each merged into `main`
 
 ## Console UI Examples
 
@@ -72,7 +80,7 @@ Below are sample enhanced console outputs showing error handling and testing fee
 
 ```
 ╔════════════════════════════════════════════╗
-║     JAVA PROJECT MANAGEMENT SYSTEM         ║
+║   JAVA PROJECT MANAGEMENT SYSTEM v3.0      ║
 ╚════════════════════════════════════════════╝
 
 Current User:  Alice Johnson (Admin)
@@ -92,11 +100,11 @@ Enter your choice: _
 ### 2. Invalid Input Handled via Exception
 
 ```
-Enter project ID: P999
-❌ Error: ProjectNotFoundException – Project ID 'P999' does not exist.
+Enter project ID: PRJ999
+❌ Error: ProjectNotFoundException – Project ID 'PRJ999' does not exist.
 Please try again.
 
-Enter project ID: P001
+Enter project ID: PRJ001
 ✓ Project 'Alpha Tracker' loaded successfully.
 ```
 
@@ -110,14 +118,14 @@ Enter project ID: P001
 Enter task name: Implement API
 Enter status (Pending/In Progress/Completed): In Progress
 
-✓ Task 'Implement API' successfully added to Project P001.
+✓ Task 'Implement API' successfully added to Project PRJ001.
 ```
 
 ### 4. Exception During Task Update
 
 ```
-Enter task ID: T999
-❌ Error: TaskNotFoundException – Task 'T999' was not found in the project.
+Enter task ID: TSK999
+❌ Error: TaskNotFoundException – Task 'TSK999' was not found in the project.
 
 Operation aborted. Returning to task menu...
 ```
@@ -131,8 +139,8 @@ Operation aborted. Returning to task menu...
 
 PROJECT ID | PROJECT NAME      | TASKS | COMPLETED | PROGRESS (%)
 -----------------------------------------------------------------
-P001       | Alpha Tracker     |   4   |    3      |   75%
-P002       | IoT Sensor Kit    |   2   |    1      |   50%
+PRJ001     | Alpha Tracker     |   4   |    3      |   75%
+PRJ002     | IoT Sensor Kit    |   2   |    1      |   50%
 -----------------------------------------------------------------
 AVERAGE COMPLETION: 62.5%
 
@@ -142,127 +150,126 @@ AVERAGE COMPLETION: 62.5%
 ### 6. Git Commit Workflow (Example Output)
 
 ```bash
-$ git init
-$ git add .
-$ git commit -m "Refactor: Added custom exceptions and cleaned class structure"
-$ git branch feature/testing
-$ git checkout feature/testing
-$ git add src/test
-$ git commit -m "Test: Added JUnit test for progress calculation"
+$ git checkout -b feature/collections-fp
+$ git commit -m "Replace fixed arrays with lists and a map"
 $ git checkout main
-$ git merge feature/testing
+$ git merge feature/collections-fp
+$ git checkout -b feature/file-io
+$ git checkout -b feature/concurrency
 ```
 
 ### 7. JUnit Test Example
 
 ```java
 @Test
-void testCalculateCompletionPercentage() {
-    Project p = new SoftwareProject("P001", "Alpha Tracker", 5, 15000);
-    p.addTask(new Task("T001", "Setup DB", "Completed"));
-    p.addTask(new Task("T002", "Design UI", "In Progress"));
+void threeThreadsUpdateThreeTasks() {
+    taskService.addTask(project, "Design", "", TaskStatus.PENDING, 1);
+    taskService.addTask(project, "Build", "", TaskStatus.PENDING, 1);
+    taskService.addTask(project, "Test", "", TaskStatus.PENDING, 1);
 
-    double result = p.calculateCompletionPercentage();
-    assertEquals(50.0, result);
+    new ConcurrencyService(taskService).simulate(projectService);
+
+    assertEquals(TaskStatus.IN_PROGRESS, project.getTasks().get(0).getStatus());
+    assertEquals(TaskStatus.COMPLETED, project.getTasks().get(1).getStatus());
+    assertEquals(TaskStatus.COMPLETED, project.getTasks().get(2).getStatus());
 }
 ```
 
 ## Expected User Workflows
 
-### Workflow 1: Refactor and Run
+### Workflow 1: Grow the catalog with collections
 
-User opens existing Lab 1 project → Refactors code → Runs updated program → Confirms all previous features still work.
+User adds projects and tasks past the old limit of 20. The `HashMap` and each `ArrayList` grow. Browse and status reports still list every project.
 
-### Workflow 2: Exception Handling
+### Workflow 2: Restart and keep the data
 
-User enters invalid data (e.g., negative budget) → System throws custom exception → Displays error → Returns to menu without crashing.
+User exits the app. `Main` writes `data/projects_data.json`. The next run prints how many projects were loaded. If that file is missing or broken, the menu opens on an empty catalog.
 
-### Workflow 3: Unit Testing
+### Workflow 3: Reject a bad id
 
-User writes JUnit tests for calculateCompletionPercentage() → Runs tests → All pass with green indicators.
+User types `TX01` at a project or task id prompt. `RegexValidator` rejects it, the menu prints the `PRJ###` or `TSK###` pattern, and the prompt repeats.
 
-### Workflow 4: Git Versioning
+### Workflow 4: Update tasks on three threads
 
-User initializes Git repo → Makes commits after refactoring and testing → Creates branch for new exceptions → Merges cleanly.
+User chooses **5. Simulate Concurrent Updates**. Three threads change the first three tasks, then the menu prints that the updates finished. With only one task, the first becomes In Progress and the other two threads report that they have no task.
 
 ## User Stories
 
-### Epic 1: Code Refactoring
+### Epic 1: Collections and streams
 
-**US-1.1:** Refactor Class Design — **As a developer** I want to simplify methods and names so that the code is easier to maintain.
-
-**Acceptance Criteria:**
-
-- No duplicate logic.
-- Descriptive method and variable names.
-- Single Responsibility per class.
-
-**Technical Requirements:**
-
-- Apply SOLID principles (Single Responsibility, Open/Closed).
-- Split large methods into smaller ones.
-- Use meaningful naming and comments.
-
-### Epic 2: Exception Handling
-
-**US-2.1:** Handle Invalid Inputs — **As a system** I want to catch invalid user inputs so that the program does not crash.
+**US-1.1:** Store a growing catalog — **As a user** I want to add projects and tasks without hitting a fixed array size.
 
 **Acceptance Criteria:**
 
-- Throws custom exceptions (e.g., InvalidInputException, TaskNotFoundException).
-- Displays clear error messages.
-- Logs errors to console gracefully.
+- Projects are stored in a `HashMap` keyed by id.
+- Tasks are stored in an `ArrayList` on the project.
+- Completion and catalog filters use streams.
 
 **Technical Requirements:**
 
-- Use try-catch-finally blocks.
-- Create custom exception classes in utils.exceptions.
-- Handle validation centrally via ValidationUtils.
+- `ProjectService`, `Project`, `StreamService`, and `TaskFilter`.
+- `filter`, `map`, and `reduce` in `StreamService`.
+- A lambda assigned to `TaskFilter` in `countByStatus`.
 
-### Epic 3: Testing Fundamentals
+### Epic 2: File persistence
 
-**US-3.1:** Test Completion Calculation — **As a developer** I want to verify that completion percentages are accurate.
+**US-2.1:** Keep the catalog after exit — **As a user** I want my projects to still be there the next time I start the app.
 
 **Acceptance Criteria:**
 
-- At least 3 JUnit tests for different cases (no tasks, partial, all completed).
-- All tests pass successfully.
+- Startup loads `data/projects_data.json`.
+- Exit saves that file, including after an early close.
+- A missing or broken file does not crash the menu.
 
 **Technical Requirements:**
 
-- Add src/test/java/ directory.
-- Use JUnit 5 annotations (@Test, @BeforeEach).
-- Assertions: assertEquals, assertThrows.
+- `FileUtils.saveProjects` and `FileUtils.loadProjects`.
+- `Files.newBufferedWriter` and `Files.lines` inside try-with-resources.
+- `Main` saves inside `finally`.
 
-### Epic 4: Git Version Control
+### Epic 3: Regex validation
 
-**US-4.1:** Version Code Changes — **As a developer** I want to track changes and refactors using Git so that my code history is maintained.
+**US-3.1:** Accept only well-formed ids — **As a system** I want project ids, task ids, and emails to match a pattern.
 
 **Acceptance Criteria:**
 
-- Repository initialized and linked to GitHub.
-- Minimum 3 meaningful commits.
-- One feature branch created and merged.
+- `PRJ001` and `TSK004` are accepted.
+- `TX01` and `T001` are rejected with `InvalidInputException`.
+- The menu stays open and asks again.
 
 **Technical Requirements:**
 
-- Run git init, git add ., git commit.
-- Use branches (e.g., feature/exceptions).
-- Merge via git merge.
+- `Pattern.compile` in `RegexValidator`.
+- `ValidationUtils.readPrefixedId` and `readEmail`.
 
-### Epic 5: Menu Error Handling
+### Epic 4: Concurrency
 
-**US-5.1:** Handle Menu Errors — **As a user** I want the menu to remain functional after invalid inputs.
+**US-4.1:** Update tasks at the same time — **As a user** I want a demo that changes three tasks from three threads without losing a status write.
 
 **Acceptance Criteria:**
 
-- Program does not crash on invalid entry.
-- Error message and retry prompt displayed.
+- Three threads start and `join()` waits for all of them.
+- Statuses end as In Progress, Completed, Completed when three tasks exist.
+- A thread with no task at its index does not add a task.
 
 **Technical Requirements:**
 
-- Use input validation and try-catch in ConsoleMenu.
-- Implement looping until valid entry is provided.
+- `new Thread(() -> updateOne(...), "Thread-1")` and the same for threads 2 and 3.
+- `synchronized` on `TaskService.updateStatus`.
+
+### Epic 5: Tests and version control
+
+**US-5.1:** Prove Lab 3 with tests and branches — **As a developer** I want each new behavior covered by a test and a merged branch.
+
+**Acceptance Criteria:**
+
+- `mvn test` runs 14 tests with 0 failures.
+- `feature/collections-fp`, `feature/file-io`, and `feature/concurrency` are merged into `main`.
+
+**Technical Requirements:**
+
+- JUnit 5 under `test/`.
+- Mockito only where a test fakes `ProjectService` (`missingTaskThrows`).
 
 ## Class diagram
 
@@ -274,7 +281,7 @@ How to read it:
 
 - A white triangle means **extends**. `SoftwareProject` and `HardwareProject` extend `Project`. `AdminUser` and `RegularUser` extend `User`.
 - A dashed line means **implements**. `Project` and `Task` both implement `Completable`.
-- A filled diamond means **has**. One project has from 0 to 20 tasks. Each task has one status. One status report summarizes one project.
+- A filled diamond means **has**. One project has many tasks in an `ArrayList`. Each task has one status. One status report summarizes one project.
 
 A longer note is in [docs/designDecisions.md](docs/designDecisions.md).
 
@@ -290,6 +297,7 @@ project-management-system/
 │   │   ├── SoftwareProject.java
 │   │   ├── HardwareProject.java
 │   │   ├── Task.java
+│   │   ├── TaskStatus.java
 │   │   ├── User.java
 │   │   ├── RegularUser.java
 │   │   ├── AdminUser.java
@@ -332,7 +340,10 @@ project-management-system/
 │
 ├── docs/
 │   ├── class-diagram.png
-│   └── designDecisions.md
+│   ├── designDecisions.md
+│   ├── class-logic.md
+│   ├── rubric-guide.md
+│   └── testing.md
 │
 ├── pom.xml
 └── README.md
@@ -340,71 +351,78 @@ project-management-system/
 
 ## Implementation Phases
 
-### Phase 1: Refactor Existing Code (1–2 hours)
+### Phase 1: Collections and functional code
+
+**Branch:** `feature/collections-fp`
 
 **Tasks:**
 
-- Review Lab 1 code.
-- Apply SOLID and naming best practices.
-- Separate concerns into services and utils.
+- Move projects to a `HashMap` and tasks to an `ArrayList`.
+- Add `StreamService`, `TaskFilter`, and regex checks.
+- Split the menu so each screen owns one area.
 
-**Deliverables:** Refactored, readable code with consistent structure.
+**Deliverables:** The catalog grows without a fixed size. Streams filter and sort it.
 
-### Phase 2: Add Exception Handling (2 hours)
+### Phase 2: File persistence
 
-**Tasks:**
-
-- Create custom exception classes.
-- Add try-catch logic around input operations.
-
-**Deliverables:** Program handles invalid inputs gracefully without crashing.
-
-### Phase 3: JUnit Testing (2 hours)
+**Branch:** `feature/file-io`
 
 **Tasks:**
 
-- Write unit tests for key methods.
-- Run tests in IntelliJ using JUnit 5.
+- Save and load `data/projects_data.json` with NIO.
+- Close the writer and the line stream with try-with-resources.
+- Load on startup and save in `Main`'s `finally` block.
 
-**Deliverables:** All tests passing; test coverage for critical logic.
+**Deliverables:** Projects and tasks are still there after a restart. A missing or broken file starts an empty catalog.
 
-### Phase 4: Git Version Control (1–2 hours)
+### Phase 3: Concurrency
+
+**Branch:** `feature/concurrency`
 
 **Tasks:**
 
-- Initialize Git repository.
-- Commit changes incrementally.
-- Push to GitHub and create branches for features.
+- Start three threads that update three different tasks.
+- Wait with `join()`.
+- Mark the status write `synchronized`.
 
-**Deliverables:** Organized commit history with proper branch merging.
+**Deliverables:** Menu option 5 finishes with In Progress, Completed, Completed when three tasks exist.
+
+### Phase 4: Tests
+
+**Tasks:**
+
+- Add `StreamOperationsTest`, `FilePersistenceTest`, and `ConcurrencyTest`.
+- Keep the Lab 2 tests in `ProjectTests`.
+
+**Deliverables:** `mvn test` reports 14 tests, 0 failures.
 
 ## Minimum Requirements Checklist
 
-- JDK 21 and IntelliJ IDEA installed and configured
-- Refactored code from Lab 1 with clean structure
-- At least 3 custom exception classes implemented
-- All exceptions properly handled via try-catch
-- At least 3 JUnit test cases passing successfully
-- Meaningful variable and method names used throughout
-- Methods follow Single Responsibility Principle
-- Git repository initialized and hosted on GitHub
-- At least 3 commits with clear messages
-- Feature branch created and merged successfully
-- Console menu remains functional after errors
-- README updated with refactoring and Git instructions
-- All previous Lab 1 features remain functional
+- JDK 21, Maven, and IntelliJ IDEA
+- Projects in a `HashMap`, tasks in an `ArrayList`
+- `filter`, `map`, and `reduce` in `StreamService`
+- `TaskFilter` used by a lambda in `countByStatus`
+- `RegexValidator` for `PRJ###`, `TSK###`, and email
+- `data/projects_data.json` loaded on startup and saved on exit
+- Try-with-resources around the writer and the line stream
+- Three threads, `join()`, and `synchronized` status updates
+- 14 JUnit tests passing, including missing file, malformed file, and one-task concurrency
+- `feature/collections-fp`, `feature/file-io`, and `feature/concurrency` merged into `main`
+- Lab 1 and Lab 2 behavior still works (menu, exceptions, completion)
+- README describes the Lab 3 behavior
 
 ## Grading Rubric
 
-| **Criteria** | **Points** | **Excellent (90–100%)** | **Good (75–89%)** | **Satisfactory (60–74%)** |
-| --- | --- | --- | --- | --- |
-| Code Refactoring & Clean Code | 20 | All classes follow SOLID principles; excellent naming; no duplication; methods concise and readable | Good structure; minor naming issues; few duplications | Some refactoring done; inconsistent style and naming |
-| Exception Handling | 20 | Robust try-catch blocks; custom exceptions implemented; error handling enhances stability | Basic exception handling; covers main failure points | Minimal exception use or only generic catch blocks |
-| Testing & Coverage | 20 | ≥ 3 comprehensive JUnit tests; high coverage; clear assertions; edge cases tested | Some tests working; limited coverage; minor failures | Few or incomplete tests with weak assertions |
-| Git Version Control | 15 | Proper repo structure; multiple commits with messages; branches merged cleanly; frequent pushes | Repo created; few commits; limited branching | Repo missing or poor commit history |
-| Functionality & Stability | 15 | All features functional with graceful error handling; clean UI flow; stable execution | Minor bugs or UI issues; mostly functional | Core features work but frequent errors or crashes |
-| Data Structures & Algorithms (DSA) | 10 | Efficient data organization and retrieval within refactored code; optimized logic in tests; shows understanding of algorithmic efficiency | Proper use of data structures in refactoring; minor inefficiencies | Limited or inefficient data handling; weak algorithmic structure |
-| **Total** | **100** |  |  |  |
+| **Criteria** | **Points** | **Where it lives in this project** |
+| --- | --- | --- |
+| Collections and functional code | 18 | `Project`, `ProjectService`, `StreamService`, `TaskFilter`, `getCompletionRate` |
+| File persistence | 18 | `FileUtils`, `Main` load/save, `test/FilePersistenceTest.java` |
+| Regex validation | 12 | `RegexValidator`, `ValidationUtils.readPrefixedId` |
+| Concurrency | 17 | `ConcurrencyService`, `synchronized` writes, menu option 5, `test/ConcurrencyTest.java` |
+| Testing and Git | 13 | Four test classes, 14 tests, three Lab 3 branches merged to `main` |
+| Code quality and docs | 10 | One menu class per area, `docs/class-logic.md`, this README |
+| Data structures and algorithms | 10 | `HashMap` lookup, `ArrayList` add/remove, stream sort, one-pass completion |
+| **Total** | **98** | Point split from `docs/rubric-guide.md` |
 
 ## Submission Requirements
 
@@ -412,7 +430,8 @@ project-management-system/
 
 - Public GitHub Repository containing:
   - All source code (/src, /test)
-  - README.md with setup and Git instructions
+  - README.md with setup, run, and Lab 3 feature notes
+  - `docs/class-logic.md`, `docs/rubric-guide.md`, and `docs/testing.md`
   - JUnit test results screenshot (optional)
 - **Documentation** must include:
   - Setup and run instructions
@@ -426,7 +445,7 @@ Please fill out this form (**insert actual form link here**)
 
 ## Testing the Application
 
-Documented results below match what this project actually implements (arrays in memory, IDs like `PRJ001` / `TSK001`, services + `ConsoleMenu`, JUnit 5 + Mockito).
+Documented results below match this Lab 3 build: `HashMap` plus `ArrayList`, ids like `PRJ001` / `TSK001`, NIO save and load, three update threads, and JUnit 5 + Mockito.
 
 ### Test Scenario 1: Refactored Project Creation
 
@@ -617,7 +636,7 @@ $ mvn test
 **Steps**
 
 1. Work was versioned on GitHub (repo already existed; no second `git init`).
-2. Feature branches for Lab 2 phases, then merge into `main`.
+2. Feature branches for Lab 2, then the three Lab 3 branches, each merged into `main`.
 
 **Result — Done**
 
@@ -627,9 +646,9 @@ $ mvn test
 | `feature/exceptions` | Phase 2 — custom exceptions + menu try/catch |
 | `feature/testing` | Phase 3 — JUnit tests |
 | `feature/taskvalidation` | Follow-up — Maven `src/test`, Mockito, README |
-| `feature/collections-fp` | Week 3 — lists, map, streams, regex, and smaller menus |
-| `feature/file-io` | Week 3 — save and load `projects_data.json` |
-| `feature/concurrency` | Week 3 — three threads update tasks safely |
+| `feature/collections-fp` | Lab 3 — lists, map, streams, regex, and smaller menus |
+| `feature/file-io` | Lab 3 — save and load `projects_data.json` |
+| `feature/concurrency` | Lab 3 — three threads update tasks safely |
 
 Merged into `main`: `feature/refactor`, `feature/exceptions`, `feature/testing`, `feature/taskvalidation`, `feature/collections-fp`, `feature/file-io`, `feature/concurrency`.
 
@@ -682,17 +701,25 @@ java -cp target/classes Main
 - Short class/method comments describe intent (for example on `Project`, `TaskService`, exception types).
 - Test sources live under Maven `test/`.
 
-## Week 3
+## Lab 3 at a glance
 
-Projects are stored in a `HashMap`. Each project keeps its tasks in an `ArrayList`. Filtering and completion use streams, lambdas, and method references (`StreamService`, `Project.getCompletionRate()`).
+Projects are stored in a `HashMap`. Each project keeps its tasks in an `ArrayList`. Filtering and completion use streams, lambdas, and method references (`StreamService`, `TaskFilter`, `Project.getCompletionRate()`).
 
 IDs are checked with `Pattern` and `Matcher` in `RegexValidator` (`PRJ###`, `TSK###`).
 
-On startup the app reads `data/projects_data.json`. On exit it writes that file again. A missing or broken file prints an error and starts with an empty catalog.
+On startup the app reads `data/projects_data.json`. On exit it writes that file again with try-with-resources. A missing or broken file prints an error and starts with an empty catalog.
 
-Main menu option **5** runs three threads that update tasks. `TaskService.updateStatus` is `synchronized`.
+Main menu option **5** runs three threads that update tasks. `TaskService.updateStatus` is `synchronized`. `join()` waits until those threads finish.
 
-Run the app from the project folder so `data/projects_data.json` is found. `mvn test` runs 14 tests:
+Run the app from the project folder so `data/projects_data.json` is found.
+
+```bash
+mvn test
+mvn -q compile
+java -cp target/classes Main
+```
+
+`mvn test` runs 14 tests:
 
 | Class | What it covers |
 | --- | --- |
